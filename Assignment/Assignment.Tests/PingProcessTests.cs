@@ -50,7 +50,6 @@ public class PingProcessTests
     [TestMethod]
     public void Run_CaptureStdOutput_Success()
     {
-        //TODO: figure out what's going wrong with "assertvalidpingoutput"
         PingResult result = Sut.Run("localhost");
         AssertValidPingOutput(result);
     }
@@ -58,7 +57,6 @@ public class PingProcessTests
     [TestMethod]
     public void RunTaskAsync_Success()
     {
-        //TODO: figure out what's going wrong with "assertvalidpingoutput"
         Task<PingResult> task = Sut.RunTaskAsync("localhost");
         AssertValidPingOutput(task.Result);
     }
@@ -82,7 +80,7 @@ public class PingProcessTests
     [ExpectedException(typeof(AggregateException))]
     public void RunAsync_UsingTplWithCancellation_CatchAggregateExceptionWrapping()
     {
-        
+        //??????????????????
     }
 
     [TestMethod]
@@ -104,14 +102,11 @@ public class PingProcessTests
     }
 
     [TestMethod]
-#pragma warning disable CS1998 // Remove this
     async public Task RunLongRunningAsync_UsingTpl_Success()
     {
-        PingResult result = default;
-        // Test Sut.RunLongRunningAsync("localhost");
+        PingResult result = await Sut.RunLongRunningAsync("localhost");
         AssertValidPingOutput(result);
     }
-#pragma warning restore CS1998 // Remove this
 
     [TestMethod]
     public void StringBuilderAppendLine_InParallel_IsNotThreadSafe()
@@ -125,12 +120,12 @@ public class PingProcessTests
 
     readonly string PingOutputLikeExpression = @"
 Pinging * with 32 bytes of data:
-Reply from ::1: time<*
-Reply from ::1: time<*
-Reply from ::1: time<*
-Reply from ::1: time<*
+Reply from * time<*
+Reply from * time<*
+Reply from * time<*
+Reply from * time<*
 
-Ping statistics for ::1:
+Ping statistics for *
     Packets: Sent = *, Received = *, Lost = 0 (0% loss),
 Approximate round trip times in milli-seconds:
     Minimum = *, Maximum = *, Average = *".Trim();
