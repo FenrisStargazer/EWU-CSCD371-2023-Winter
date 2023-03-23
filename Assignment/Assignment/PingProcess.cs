@@ -76,7 +76,13 @@ public class PingProcess
     {
         StartInfo.Arguments = hostNameOrAddress;
         StringBuilder outputStrings = new();
-        return await Task.Run(() => RunLongRunningAsync(StartInfo, (line) => (outputStrings ??= new StringBuilder()).AppendLine(line), default, default));
+        Action<string?>? output = (line) => {
+            lock (outputStrings ??= new())
+            {
+                outputStrings.AppendLine(line);
+            }
+        };
+        return await Task.Run(() => RunLongRunningAsync(StartInfo, output, default, default));
     }
 
     private Process RunProcessInternal(
