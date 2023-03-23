@@ -34,8 +34,8 @@ public class PingProcess
     async public Task<PingResult> RunAsync(
         string hostNameOrAddress, CancellationToken cancellationToken = default)
     {
-        Task<PingResult> task = Task.Run(() => Run(hostNameOrAddress));
         cancellationToken.ThrowIfCancellationRequested();
+        Task<PingResult> task = Task.Run(() => Run(hostNameOrAddress), cancellationToken);
         return await task;
     }
 
@@ -46,7 +46,12 @@ public class PingProcess
         {
             CancellationToken cancellationToken = default;
             Task<PingResult> task = RunAsync(item, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
             await task.WaitAsync(default(CancellationToken));
+            lock (stringBuilder ??= new())
+            {
+                stringBuilder.AppendLine(task.Result.StdOutput);
+            }
             return task.Result.ExitCode;
         });
 
@@ -55,15 +60,23 @@ public class PingProcess
         return new PingResult(total, stringBuilder?.ToString());
     }
 
-    async public Task<PingResult> RunAsync(IEnumerable<string> hostNameorAddresses, CancellationToken cancellationToken = default)
+    async public Task<PingResult> RunAsync(IEnumerable<string> hostNameOrAddresses, CancellationToken cancellationToken = default)
     {
-        return await RunAsync(hostNameorAddresses.ToArray(), cancellationToken);
+        return await RunAsync(hostNameOrAddresses.ToArray(), cancellationToken);
+    }
+
+    public PingResult RunLongRunningAsync(ProcessStartInfo startInfo, Action<string?>? progressOutput, Action<string?>? progressError, CancellationToken token)
+    {
+        var task = Task.Factory.StartNew(() => RunProcessInternal(startInfo, progressOutput, progressError, token), token, TaskCreationOptions.LongRunning, TaskScheduler.Current);
+        return new PingResult(task.Result.ExitCode, progressOutput!.ToString());
     }
 
     async public Task<PingResult> RunLongRunningAsync(
         string hostNameOrAddress, CancellationToken cancellationToken = default)
     {
-        //Task.Factory.StartNew(() => RunProcessInternal());
+        StartInfo.Arguments = hostNameOrAddress;
+        StringBuilder outputStrings = new();
+        return await Task.Run(() => RunLongRunningAsync(StartInfo, (line) => (outputStrings ??= new StringBuilder()).AppendLine(line), default, default));
     }
 
     private Process RunProcessInternal(

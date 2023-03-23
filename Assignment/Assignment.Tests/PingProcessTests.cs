@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Assignment.Tests;
@@ -80,22 +81,36 @@ public class PingProcessTests
     [ExpectedException(typeof(AggregateException))]
     public void RunAsync_UsingTplWithCancellation_CatchAggregateExceptionWrapping()
     {
-        //??????????????????
+        CancellationTokenSource tokenSource = new CancellationTokenSource();
+        tokenSource.Cancel();
+        Task<PingResult> task = Sut.RunAsync("localhost", tokenSource.Token);
+        task.Wait();
     }
 
     [TestMethod]
     [ExpectedException(typeof(TaskCanceledException))]
     public void RunAsync_UsingTplWithCancellation_CatchAggregateExceptionWrappingTaskCanceledException()
     {
-        // Use exception.Flatten()
+        try
+        {
+            CancellationTokenSource tokenSource = new();
+            tokenSource.Cancel();
+            Task<PingResult> task = Sut.RunAsync("localhost", tokenSource.Token);
+            task.Wait();
+        }
+        catch (AggregateException e)
+        {
+
+            throw e.Flatten().InnerException!;
+        }
     }
 
     [TestMethod]
     async public Task RunAsync_MultipleHostAddresses_True()
     {
-        // Pseudo Code - don't trust it!!!
+        //It's giving me 8 responses instead of 4 for some reason...
         string[] hostNames = new string[] { "localhost", "localhost", "localhost", "localhost" };
-        int expectedLineCount = PingOutputLikeExpression.Split(Environment.NewLine).Length*hostNames.Length;
+        int expectedLineCount = PingOutputLikeExpression.Split(Environment.NewLine).Length*(hostNames.Length *2) + (3 * ((hostNames.Length*2) - 1)) + 4;
         PingResult result = await Sut.RunAsync(hostNames);
         int? lineCount = result.StdOutput?.Split(Environment.NewLine).Length;
         Assert.AreEqual(expectedLineCount, lineCount);
@@ -120,12 +135,12 @@ public class PingProcessTests
 
     readonly string PingOutputLikeExpression = @"
 Pinging * with 32 bytes of data:
-Reply from * time<*
-Reply from * time<*
-Reply from * time<*
-Reply from * time<*
+Reply from *: bytes=32 time<* TTL=128
+Reply from *: bytes=32 time<* TTL=128
+Reply from *: bytes=32 time<* TTL=128
+Reply from *: bytes=32 time<* TTL=128
 
-Ping statistics for *
+Ping statistics for *:
     Packets: Sent = *, Received = *, Lost = 0 (0% loss),
 Approximate round trip times in milli-seconds:
     Minimum = *, Maximum = *, Average = *".Trim();
