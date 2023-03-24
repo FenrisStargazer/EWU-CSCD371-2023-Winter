@@ -81,9 +81,7 @@ public class PingProcessTests
     [ExpectedException(typeof(AggregateException))]
     public void RunAsync_UsingTplWithCancellation_CatchAggregateExceptionWrapping()
     {
-        CancellationTokenSource tokenSource = new CancellationTokenSource();
-        tokenSource.Cancel();
-        Task<PingResult> task = Sut.RunAsync("localhost", tokenSource.Token);
+        Task<PingResult> task = Sut.RunAsync("localhost", new CancellationToken(true));
         task.Wait();
     }
 
@@ -93,9 +91,7 @@ public class PingProcessTests
     {
         try
         {
-            CancellationTokenSource tokenSource = new();
-            tokenSource.Cancel();
-            Task<PingResult> task = Sut.RunAsync("localhost", tokenSource.Token);
+            Task<PingResult> task = Sut.RunAsync("localhost", new CancellationToken(true));
             task.Wait();
         }
         catch (AggregateException e)
@@ -110,10 +106,10 @@ public class PingProcessTests
     {
         //It's giving me 8 responses instead of 4 for some reason...
         string[] hostNames = new string[] { "localhost", "localhost", "localhost", "localhost" };
-        int expectedLineCount = PingOutputLikeExpression.Split(Environment.NewLine).Length*(hostNames.Length *2) + (3 * ((hostNames.Length*2) - 1)) + 4;
+        int expectedLineCount = PingOutputLikeExpression.Split(Environment.NewLine).Length * (hostNames.Length * 2) + 1;
         PingResult result = await Sut.RunAsync(hostNames);
         int? lineCount = result.StdOutput?.Split(Environment.NewLine).Length;
-        Assert.AreEqual(expectedLineCount, lineCount);
+        Assert.AreEqual<int?>(expectedLineCount, lineCount);
     }
 
     [TestMethod]

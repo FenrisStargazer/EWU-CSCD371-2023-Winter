@@ -27,8 +27,7 @@ public class PingProcess
 
     public Task<PingResult> RunTaskAsync(string hostNameOrAddress)
     {
-        Task<PingResult> task = Task.Run(() => Run(hostNameOrAddress));
-        return task;
+        return Task.Run(() => Run(hostNameOrAddress));
     }
 
     async public Task<PingResult> RunAsync(
@@ -50,7 +49,7 @@ public class PingProcess
             await task.WaitAsync(default(CancellationToken));
             lock (stringBuilder ??= new())
             {
-                stringBuilder.AppendLine(task.Result.StdOutput);
+                stringBuilder.AppendLine(task.Result.StdOutput?.Trim());
             }
             return task.Result.ExitCode;
         });
@@ -68,7 +67,7 @@ public class PingProcess
     public PingResult RunLongRunningAsync(ProcessStartInfo startInfo, Action<string?>? progressOutput, Action<string?>? progressError, CancellationToken token)
     {
         var task = Task.Factory.StartNew(() => RunProcessInternal(startInfo, progressOutput, progressError, token), token, TaskCreationOptions.LongRunning, TaskScheduler.Current);
-        return new PingResult(task.Result.ExitCode, progressOutput!.ToString());
+        return new PingResult(task.Result.ExitCode, progressOutput?.ToString());
     }
 
     async public Task<PingResult> RunLongRunningAsync(
@@ -82,7 +81,8 @@ public class PingProcess
                 outputStrings.AppendLine(line);
             }
         };
-        return await Task.Run(() => RunLongRunningAsync(StartInfo, output, default, default));
+        PingResult res = await Task.Run(() => RunLongRunningAsync(StartInfo, output, default, default));
+        return new PingResult(res.ExitCode, outputStrings.ToString());
     }
 
     private Process RunProcessInternal(
